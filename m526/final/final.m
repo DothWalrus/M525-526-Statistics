@@ -1,0 +1,58 @@
+clc;
+close all;
+clear all;
+%% load data
+load('dyn_counts_v2-1.mat')
+%% 1 Forward Filtering
+% parameters
+phi = [8;15;24;31;42];
+rho = 1/5*ones([5,1]);
+pi = [25/26 1/26 0 0 0
+    1/27 25/27 1/27 0 0
+    0 1/27 25/27 1/27 0
+    0 0 1/27 25/27 1/27
+    0 0 0 1/26 25/26];
+N = length(w);
+M = 5;
+
+G = zeros(M,N);
+A = zeros(M,N);
+q = zeros(1,N);
+
+% initialization
+G(:,1) = poisspdf(w(1),phi);
+A(:,1) = G(:,1).*rho;
+q(1) = sum(A(:,1));
+A(:,1) = A(:,1)/q(1);
+
+% iteration
+for n = 2:N
+    G(:,n) = poisspdf(w(n), phi);
+    A(:,n) = pi*A(:,n-1) .* G(:,n);
+    q(n) = sum(A(:,n));
+    A(:,n) = A(:,n)/q(n);
+end
+
+% log liklihood
+p = sum(log(q))
+
+%% Viterbi
+J = zeros(1,N);
+n = sort(1:N, 'descend');
+for j = n
+    Q = pi*A(:,j);
+    [J(j),K] = find(Q==max(Q));
+end
+for m=[5 4 3 2 1]
+    J(J==m) = phi(m);
+end
+
+
+
+%% plots
+%plot(1:N,w)
+figure('Name','Viterbi Algorithm')
+plot(1:N,w); hold on;
+plot(1:N, J, '*-', 'LineWidth',1);
+legend('$w_n$', '$s_n$', 'interpreter', 'latex')
+title('Viterbi Algorithm')
